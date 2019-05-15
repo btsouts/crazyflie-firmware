@@ -171,11 +171,31 @@ bool lps25hGetData(float* pressure, float* temperature, float* asl)
  */
 float lps25hPressureToAltitude(float* pressure/*, float* ground_pressure, float* ground_temp*/)
 {
+    //static float correctionValue = 0.0f;
+    //float calculatedAltitude;
+
     if (*pressure > 0)
     {
         //return (1.f - pow(*pressure / CONST_SEA_PRESSURE, CONST_PF)) * CONST_PF2;
         //return ((pow((1015.7 / *pressure), CONST_PF) - 1.0) * (25. + 273.15)) / 0.0065;
-        return ((powf((1015.7f / *pressure), CONST_PF) - 1.0f) * (FIX_TEMP + 273.15f)) / 0.0065f;
+        //Commented out by billtsou return ((powf((1015.7f / *pressure), CONST_PF) - 1.0f) * (FIX_TEMP + 273.15f)) / 0.0065f;
+
+        /* billtsou 15.5.2019 - correction of negative altitude */
+
+        /*
+        calculatedAltitude = ((powf((1015.7f / *pressure), CONST_PF) - 1.0f) * (FIX_TEMP + 273.15f)) / 0.0065f;
+
+        if (calculatedAltitude < 0.0f) {
+          if (correctionValue == 0.0f) {
+            correctionValue = -calculatedAltitude;
+          } else {
+            calculatedAltitude += correctionValue; 
+          }
+        }
+
+        return calculatedAltitude;
+        */
+        return (powf((1015.7f / *pressure), CONST_PF) * (FIX_TEMP + 273.15f)) / 0.0065f; 
     }
     else
     {
