@@ -178,7 +178,7 @@ float lps25hPressureToAltitude(float* pressure/*, float* ground_pressure, float*
     {
         //return (1.f - pow(*pressure / CONST_SEA_PRESSURE, CONST_PF)) * CONST_PF2;
         //return ((pow((1015.7 / *pressure), CONST_PF) - 1.0) * (25. + 273.15)) / 0.0065;
-        //Commented out by billtsou return ((powf((1015.7f / *pressure), CONST_PF) - 1.0f) * (FIX_TEMP + 273.15f)) / 0.0065f;
+        return ((powf((1015.7f / *pressure), CONST_PF) - 1.0f) * (FIX_TEMP + 273.15f)) / 0.0065f;
 
         /* billtsou 15.5.2019 - correction of negative altitude */
 
@@ -195,7 +195,7 @@ float lps25hPressureToAltitude(float* pressure/*, float* ground_pressure, float*
 
         return calculatedAltitude;
         */
-        return (powf((1015.7f / *pressure), CONST_PF) * (FIX_TEMP + 273.15f)) / 0.0065f; 
+        //return (powf((1015.7f / *pressure), CONST_PF) * (FIX_TEMP + 273.15f)) / 0.0065f; 
     }
     else
     {
