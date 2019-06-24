@@ -64,6 +64,8 @@
 #include "deck.h"
 #include "extrx.h"
 
+#include "ina219.h"
+
 /* Private variable */
 static bool selftestPassed;
 static bool canFly;
@@ -194,6 +196,7 @@ void systemTask(void *arg)
     soundSetEffect(SND_STARTUP);
     ledseqRun(SYS_LED, seq_alive);
     ledseqRun(LINK_LED, seq_testPassed);
+    ina219Init(I2C1_DEV);
   }
   else
   {

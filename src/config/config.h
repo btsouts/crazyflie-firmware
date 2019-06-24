@@ -85,6 +85,7 @@
 #define USDWRITE_TASK_PRI       0
 #define PCA9685_TASK_PRI        3
 #define CMD_HIGH_LEVEL_TASK_PRI 2
+#define INA219_TASK_PRI         3
 
 #define SYSLINK_TASK_PRI        3
 #define USBLINK_TASK_PRI        3
@@ -123,6 +124,7 @@
 #define PCA9685_TASK_NAME       "PCA9685"
 #define CMD_HIGH_LEVEL_TASK_NAME "CMDHL"
 #define MULTIRANGER_TASK_NAME   "MR"
+#define INA219_TASK_NAME        "INA219"
 
 //Task stack sizes
 #define SYSTEM_TASK_STACKSIZE         (2* configMINIMAL_STACK_SIZE)
@@ -151,6 +153,7 @@
 #define PCA9685_TASK_STACKSIZE        (2 * configMINIMAL_STACK_SIZE)
 #define CMD_HIGH_LEVEL_TASK_STACKSIZE configMINIMAL_STACK_SIZE
 #define MULTIRANGER_TASK_STACKSIZE    (2 * configMINIMAL_STACK_SIZE)
+#define INA219_TASK_STACKSIZE             configMINIMAL_STACK_SIZE
 
 //The radio channel. From 0 to 125
 #define RADIO_CHANNEL 80

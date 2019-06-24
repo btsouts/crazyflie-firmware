@@ -35,10 +35,18 @@
 #include "i2cdev.h"
 #include "debug.h"
 #include "eprintf.h"
+#include "param.h"
+#include "log.h"
 
 static uint8_t devAddr;
 static I2C_Dev *I2Cx;
 static bool isInit;
+
+static int16_t loadVoltage=0, shuntVoltage=0;
+static int16_t loadCurrent=0;
+static uint16_t ina219_currentDivider_mA; 
+
+static void ina219Task(void *param);
 
 bool ina219Init(I2C_Dev *i2cPort)
 {
@@ -52,70 +60,31 @@ bool ina219Init(I2C_Dev *i2cPort)
 
   isInit = true;
 
+  //DEBUG_PRINT("Init INA 219\n");
+  //ina219Init(I2C1_DEV);
+
+  DEBUG_PRINT("Enable INA 219\n");
+  ina219SetEnabled(true);
+
+  xTaskCreate(ina219Task, INA219_TASK_NAME,
+               INA219_TASK_STACKSIZE, NULL, INA219_TASK_PRI, NULL);
+
   return true;
 }
-
-/*
-bool ina219TestConnection(void)
-{
-  uint8_t id;
-  bool status;
-
-  if (!isInit)
-	return false;
-
-
-  status = i2cdevReadReg8(I2Cx, devAddr, LPS25H_WHO_AM_I, 1, &id);
-
-  if (status == true && id == LPS25H_WAI_ID)
-	  return true;
-
-  return false;
-}
-
-bool ina219SelfTest(void)
-{
-  float pressure;
-  float temperature;
-  float asl;
-
-  if (!isInit)
-    return false;
-
-  ina219GetData(&pressure, &temperature, &asl);
-
-  if (ina219EvaluateSelfTest(LPS25H_ST_PRESS_MIN, LPS25H_ST_PRESS_MAX, pressure, "pressure") &&
-      ina219EvaluateSelfTest(LPS25H_ST_TEMP_MIN, LPS25H_ST_TEMP_MAX, temperature, "temperature"))
-  {
-    return true;
-  }
-  else
-  {
-   return false;
-  }
-}
-
-bool ina219EvaluateSelfTest(float min, float max, float value, char* string)
-{
-  if (value < min || value > max)
-  {
-    DEBUG_PRINT("Self test %s [FAIL]. low: %0.2f, high: %0.2f, measured: %0.2f\n",
-                string, (double)min, (double)max, (double)value);
-    return false;
-  }
-  return true;
-}
-*/
 
 bool ina219SetEnabled(bool enable)
 {
-  bool status;
+  bool status=false;
   uint16_t ina219_calValue = 8192; //setCalibration_16V_400mA
 	uint16_t config = INA219_CONFIG_BVOLTAGERANGE_16V |
                     INA219_CONFIG_GAIN_1_40MV | INA219_CONFIG_BADCRES_12BIT |
                     INA219_CONFIG_SADCRES_12BIT_1S_532US |
 					          INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
   uint8_t data[2];
+
+  // Set multipliers to convert raw current/power values
+  ina219_currentDivider_mA = 20;    // Current LSB = 50uA per bit (1000/50 = 20)
+  //ina219_powerMultiplier_mW = 1.0f; // Power LSB = 1mW per bit
 
 	if (!isInit)
 	  return false;
@@ -127,14 +96,14 @@ bool ina219SetEnabled(bool enable)
 
     DEBUG_PRINT("Writing calibration\n");
     status = i2cdevWriteReg8(I2Cx, devAddr, INA219_REG_CALIBRATION, 2, data);
-    DEBUG_PRINT("Status is %d\n",status);
+    //DEBUG_PRINT("Status is %d\n",status);
 
     data[0] = (uint8_t) (config & 0xFF00) >> 8; //MSB
     data[1] = (uint8_t) (config & 0x00FF);      //LSB
 
     DEBUG_PRINT("Writing config\n");
     status = i2cdevWriteReg8(I2Cx, devAddr, INA219_REG_CONFIG, 2, data);
-    DEBUG_PRINT("Status is %d\n",status);
+    //DEBUG_PRINT("Status is %d\n",status);
 	}
 	else
 	{
@@ -144,7 +113,7 @@ bool ina219SetEnabled(bool enable)
 	return status;
 }
 
-bool ina219GetData(int16_t *measuredVoltage)
+bool ina219GetData(int16_t *measuredValue)
 {
   uint8_t data[2];
   bool status;
@@ -152,11 +121,11 @@ bool ina219GetData(int16_t *measuredVoltage)
   uint16_t	readSensorRegisterValueLSB;
 	uint16_t	readSensorRegisterValueMSB;
 	int16_t		readSensorRegisterValueCombined;
-	int16_t		busVoltage=0, shuntVoltage=0, loadVoltage=0;
+
+#ifdef MEASURE_VOLTAGE
+  int16_t		busVoltage=0; //, loadVoltage=0;
 
   status =  i2cdevReadReg8(I2Cx, devAddr, INA219_REG_BUSVOLTAGE, 2, data);
-  //DEBUG_PRINT("Status is %d\n",status);
-
   readSensorRegisterValueMSB = data[0];
 	readSensorRegisterValueLSB = data[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB);
@@ -170,19 +139,63 @@ bool ina219GetData(int16_t *measuredVoltage)
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB);
   shuntVoltage = (int16_t) readSensorRegisterValueCombined;
 
-	loadVoltage = busVoltage + (shuntVoltage / 1000);
+	//loadVoltage = busVoltage + (shuntVoltage / 1000);
+  loadVoltage = busVoltage + shuntVoltage;
 
-  *measuredVoltage = loadVoltage;
+  *measuredValue = loadVoltage;
+#endif
+
+#ifdef MEASURE_CURRENT
+  // From the Adafruit library
+  // Sometimes a sharp load will reset the INA219, which will
+  // reset the cal register, meaning CURRENT and POWER will
+  // not be available ... avoid this by always setting a cal
+  // value even if it's an unfortunate extra step
+  //wireWriteRegister(INA219_REG_CALIBRATION, ina219_calValue);
+
+  // Now we can safely read the CURRENT register!
+  status =  i2cdevReadReg8(I2Cx, devAddr, INA219_REG_CURRENT, 2, data);
+  readSensorRegisterValueMSB = data[0];
+	readSensorRegisterValueLSB = data[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB);
+
+  //readSensorRegisterValueCombined /= ina219_currentDivider_mA;
+  loadCurrent = readSensorRegisterValueCombined;
+
+  *measuredValue = loadCurrent;
+#endif
 
   return status;
 }
 
-//#include "math.h"
-
-/**
- * Converts pressure to altitude above sea level (ASL) in meters
- */
-float ina219PressureToAltitude(float* pressure)
+static void ina219Task(void *param)
 {
-    return 0;
+  int16_t measuredValue;
+
+  while (1)
+  {
+    vTaskDelay(M2T(100));
+
+    //DEBUG_PRINT("Measure INA 219\n");
+    ina219GetData(&measuredValue);
+
+  // #ifdef MEASURE_VOLTAGE
+  //       DEBUG_PRINT("Measured Voltage is %d\n",measuredValue);
+  // #endif      
+
+  // #ifdef MEASURE_CURRENT
+  //       DEBUG_PRINT("Measured Current is %d\n",measuredValue);
+  // #endif
+  }  
 }
+
+// PARAM_GROUP_START(current_sensor)
+// PARAM_ADD(PARAM_INT16 | PARAM_RONLY, INA219, &loadVoltage)
+// //PARAM_ADD(PARAM_UINT8 | PARAM_RONLY, MS5611, &isBarometerPresent) 
+// PARAM_GROUP_STOP(current_sensor)
+
+LOG_GROUP_START(current_sensor)
+LOG_ADD(LOG_INT16, ina219LVT, &loadVoltage)
+LOG_ADD(LOG_INT16, ina219SVT, &shuntVoltage)
+LOG_ADD(LOG_INT16, ina219CUR, &loadCurrent)
+LOG_GROUP_STOP(current_sensor)

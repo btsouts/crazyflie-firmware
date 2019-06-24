@@ -32,6 +32,9 @@
 #include <stdbool.h>
 #include "i2cdev.h"
 
+#define MEASURE_CURRENT
+#define MEASURE_VOLTAGE
+
 /** default I2C address **/
 #define INA219_ADDRESS (0x40) // 1000000 (A0+A1=GND)
 
@@ -178,6 +181,4 @@ bool ina219SetEnabled(bool enable);
  */
 bool ina219GetData(int16_t *measuredVoltage);
 
-float ina219PressureToAltitude(float* pressure);
-
-#endif // LPS25H_H
+#endif // INA219_H

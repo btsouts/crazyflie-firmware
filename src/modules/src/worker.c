@@ -35,8 +35,8 @@
 #include "queue.h"
 #include "queuemonitor.h"
 
-#include "ina219.h"
-#include "i2cdev.h"
+//#include "ina219.h"
+//#include "i2cdev.h"
 
 #include "console.h"
 
@@ -66,17 +66,17 @@ bool workerTest()
 void workerLoop()
 {
   struct worker_work work;
-  unsigned int printCounter = 0, printCounts=0;
-  int16_t measuredVoltage;
+  // unsigned int printCounter = 0, printCounts=0;
+  // int16_t measuredValue;
 
   if (!workerQueue)
     return;
 
-  DEBUG_PRINT("Init INA 219\n");
-  ina219Init(I2C1_DEV);
+  // DEBUG_PRINT("Init INA 219\n");
+  // ina219Init(I2C1_DEV);
 
-  DEBUG_PRINT("Enable INA 219\n");
-  ina219SetEnabled(true);
+  // DEBUG_PRINT("Enable INA 219\n");
+  // ina219SetEnabled(true);
 
   while (1)
   {
@@ -85,17 +85,23 @@ void workerLoop()
     if (work.function)
       work.function(work.arg);
 
-    if (printCounter == 100) {
-      printCounter = 0;
-      printCounts++;
+//     if (printCounter == 100) {
+//       printCounter = 0;
+//       printCounts++;
 
-      DEBUG_PRINT("Measure INA 219\n");
-      ina219GetData(&measuredVoltage);
+//       DEBUG_PRINT("Measure INA 219\n");
+//       ina219GetData(&measuredValue);
 
-      DEBUG_PRINT("MeasureVoltage is %d\n",measuredVoltage);
-    } else {
-      printCounter++;
-    }
+// // #ifdef MEASURE_VOLTAGE
+// //       DEBUG_PRINT("Measured Voltage is %d\n",measuredValue);
+// // #endif      
+
+// #ifdef MEASURE_CURRENT
+//       DEBUG_PRINT("Measured Current is %d\n",measuredValue);
+// #endif
+    // } else {
+    //   printCounter++;
+    // }
     
   }
 }
