@@ -65,6 +65,7 @@
 #include "extrx.h"
 
 #include "ina219.h"
+#include "ina260.h"
 
 /* Private variable */
 static bool selftestPassed;
@@ -196,7 +197,13 @@ void systemTask(void *arg)
     soundSetEffect(SND_STARTUP);
     ledseqRun(SYS_LED, seq_alive);
     ledseqRun(LINK_LED, seq_testPassed);
+#ifdef INA219_ENABLE    
     ina219Init(I2C1_DEV);
+#endif
+
+#ifdef INA260_ENABLE    
+    ina260Init(I2C1_DEV);
+#endif
   }
   else
   {

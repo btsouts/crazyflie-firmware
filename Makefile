@@ -127,7 +127,15 @@ PROJ_OBJ += bmi055_accel.o bmi055_gyro.o bmi160.o bmp280.o bstdr_comm_support.o 
 PROJ_OBJ += bmi088_accel.o bmi088_gyro.o bmi088_fifo.o bmp3.o
 PROJ_OBJ += pca9685.o vl53l0x.o pca95x4.o pca9555.o vl53l1x.o pmw3901.o
 PROJ_OBJ += amg8833.o lh_bootloader.o
+
+ifeq ($(CURRENT_SENSOR), INA219)
 PROJ_OBJ += ina219.o
+CFLAGS += -DINA219_ENABLE
+else ifeq ($(CURRENT_SENSOR), INA260)
+PROJ_OBJ += ina260.o
+CFLAGS += -DINA260_ENABLE
+else
+endif
 
 # USB Files
 PROJ_OBJ += usb_bsp.o usblink.o usbd_desc.o usb.o
