@@ -42,7 +42,7 @@ static uint8_t devAddr;
 static I2C_Dev *I2Cx;
 static bool isInit;
 
-static int16_t loadVoltage=0, shuntVoltage=0;
+static int16_t loadVoltage=0;//, shuntVoltage=0;
 static int16_t loadCurrent=0;
 //static uint16_t ina260_currentDivider_mA; 
 
@@ -125,13 +125,6 @@ bool ina260GetData(int16_t *measuredValue)
 	busVoltage = (int16_t) readSensorRegisterValueCombined;
   //DEBUG_PRINT("busVoltage %d\n",busVoltage);
 
-  // status =  i2cdevReadReg8(I2Cx, devAddr, INA260_REG_SHUNTVOLTAGE, 2, data);
-  // readSensorRegisterValueMSB = data[0];
-	// readSensorRegisterValueLSB = data[1];
-	// readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB);
-  // shuntVoltage = (int16_t) readSensorRegisterValueCombined;
-
-	// loadVoltage = busVoltage + shuntVoltage;
   loadVoltage = busVoltage;
 
   *measuredValue = loadVoltage;
@@ -143,7 +136,7 @@ bool ina260GetData(int16_t *measuredValue)
 	readSensorRegisterValueLSB = data[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB);
 
-  loadCurrent = readSensorRegisterValueCombined;
+  loadCurrent = (int16_t) (readSensorRegisterValueCombined * 1.25);
 
   *measuredValue = loadCurrent;
 #endif
@@ -179,6 +172,6 @@ static void ina260Task(void *param)
 
 LOG_GROUP_START(current_sensor)
 LOG_ADD(LOG_INT16, ina260LVT, &loadVoltage)
-LOG_ADD(LOG_INT16, ina260SVT, &shuntVoltage)
+//LOG_ADD(LOG_INT16, ina260SVT, &shuntVoltage)
 LOG_ADD(LOG_INT16, ina260CUR, &loadCurrent)
 LOG_GROUP_STOP(current_sensor)

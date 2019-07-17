@@ -64,5 +64,8 @@ void stabilizerResetEmergencyStop();
  */
 void stabilizerSetEmergencyStopTimeout(int timeout);
 
+#ifdef PWM_CRTP
+void stabilizerThrustExperiment (uint16_t appliedThrust);
+#endif
 
 #endif /* STABILIZER_H_ */

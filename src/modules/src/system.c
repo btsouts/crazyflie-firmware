@@ -66,6 +66,7 @@
 
 #include "ina219.h"
 #include "ina260.h"
+#include "pwm_crtp.h"
 
 /* Private variable */
 static bool selftestPassed;
@@ -174,6 +175,10 @@ void systemTask(void *arg)
   soundInit();
   memInit();
 
+#ifdef PWM_CRTP
+  pwmCRTPInit();
+#endif
+
 #ifdef PROXIMITY_ENABLED
   proximityInit();
 #endif
@@ -188,6 +193,9 @@ void systemTask(void *arg)
   pass &= soundTest();
   pass &= memTest();
   pass &= watchdogNormalStartTest();
+#ifdef PWM_CRTP
+  pass &= pwmCRTPTest();
+#endif
 
   //Start the firmware
   if(pass)

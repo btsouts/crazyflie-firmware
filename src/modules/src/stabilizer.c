@@ -65,6 +65,12 @@ static sensorData_t sensorData;
 static state_t state;
 static control_t control;
 
+#ifdef PWM_CRTP
+/* Constant thrust experiment data */
+static control_t controlPWM = {0, 0, 0, 0};
+static int experimentState=0; /* 0 not started, 1 running, 2 stop motors and go back to 0 */
+#endif
+
 static StateEstimatorType estimatorType;
 static ControllerType controllerType;
 
@@ -161,6 +167,30 @@ static void compressSetpoint()
   setpointCompressed.ay = setpoint.acceleration.y * 1000.0f;
   setpointCompressed.az = setpoint.acceleration.z * 1000.0f;
 }
+
+#ifdef PWM_CRTP
+void stabilizerThrustExperiment (uint16_t appliedThrust) {
+  if ((experimentState == 0) && (appliedThrust > 0)) {
+    experimentState = 1;
+  } else if ((experimentState == 1) && (appliedThrust == 0)) {
+    experimentState = 2;
+  }
+
+  /*
+  if (runExperiment == true) {
+    if (experimentState == 0) {
+      experimentState = 1;
+    }
+  } else {
+    if (experimentState == 1) {
+      experimentState = 2;
+    }
+  }
+   */
+
+  controlPWM.thrust = (float) appliedThrust;
+}
+#endif 
 
 void stabilizerInit(StateEstimatorType estimator)
 {
@@ -275,6 +305,15 @@ static void stabilizerTask(void* param)
       } else {
         powerDistribution(&control);
       }
+
+#ifdef PWM_CRTP
+      if (experimentState == 1) {
+        powerDistribution(&controlPWM);
+      } else if (experimentState == 2) {
+        powerDistribution(&controlPWM);
+        experimentState = 0;
+      }
+#endif
 
       // Log data to uSD card if configured
       if (   usddeckLoggingEnabled()
