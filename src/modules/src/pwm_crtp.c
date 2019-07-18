@@ -52,6 +52,13 @@
 
 #define STATUS_OK 0
 
+typedef enum {
+  TYPE_STOP_MOTORS = 0,
+  TYPE_SET_EACH_MOTOR = 1,
+  TYPE_SET_ALL_MOTORS = 2,
+  TYPE_SET_SWEEP = 3
+} pwmCRTPHeaders;
+
 //Private functions
 static void pwmCRTPTask(void * prm);
 
@@ -90,65 +97,68 @@ void pwmCRTPTask(void * param)
   //int count=0, countMax = 10000;
   int profileSeconds=0;
   uint16_t ratioM = 0;
+  uint16_t ratioMPerc=0, startPercM=0, endPercM=0, ratioMInc=0;
   
 	while(1)
 	{
 		crtpReceivePacketBlock(CRTP_PORT_PWM, &p);
 
-    /*
-    memcpy(&ratioM1,&p.data[0],2);
-    memcpy(&ratioM2,&p.data[2],2);
-    memcpy(&ratioM3,&p.data[4],2);
-    memcpy(&ratioM4,&p.data[6],2);
-    */
-    memcpy(&ratioM,&p.data[0],2); 
-    memcpy(&profileSeconds,&p.data[2],4);
+    if (p.channel == TYPE_SET_EACH_MOTOR) {
+      memcpy(&ratioM1,&p.data[0],2);
+      memcpy(&ratioM2,&p.data[2],2);
+      memcpy(&ratioM3,&p.data[4],2);
+      memcpy(&ratioM4,&p.data[6],2);
+      memcpy(&profileSeconds,&p.data[8],4);
+    } else if (p.channel == TYPE_SET_ALL_MOTORS) {
+      memcpy(&ratioM,&p.data[0],2); 
+      memcpy(&profileSeconds,&p.data[2],4);
 
 #ifdef DEBUG
-    DEBUG_PRINT("ratioM %d, profileSeconds %d\n",ratioM,profileSeconds);
+      DEBUG_PRINT("ratioM %d, profileSeconds %d\n",ratioM,profileSeconds);
 #endif 
 
-    stabilizerThrustExperiment(ratioM);
-    ratioM1 = ratioM;
-    ratioM2 = ratioM;
-    ratioM3 = ratioM;
-    ratioM4 = ratioM;
-    
-    if (ratioM > 0) {
-      vTaskDelay(M2T(profileSeconds*1000));
-    }
+      stabilizerThrustExperiment(ratioM);
 
-    /*
-    if (executedOnce == false) {
+      ratioM1 = ratioM;
+      ratioM2 = ratioM;
+      ratioM3 = ratioM;
+      ratioM4 = ratioM;
 
-      for (count=0; count < countMax; count++) {
-        motorsSetRatio(MOTOR_M1, ratioM1);
-        motorsSetRatio(MOTOR_M2, ratioM2);
-        motorsSetRatio(MOTOR_M3, ratioM3);
-        motorsSetRatio(MOTOR_M4, ratioM4);
+      if (ratioM > 0) {
+        vTaskDelay(M2T(profileSeconds*1000));
+      }
+    } else if (p.channel == TYPE_STOP_MOTORS) {
+    } else if (p.channel == TYPE_SET_SWEEP) {
+      memcpy(&startPercM,&p.data[0],2);
+      memcpy(&endPercM,&p.data[2],2);
+      memcpy(&ratioMInc,&p.data[4],2);  
+      memcpy(&profileSeconds,&p.data[6],4);
 
-        //vTaskDelay(M2T(10));
+
+#ifdef DEBUG
+      DEBUG_PRINT("startPercM %d, endPercM %d, ratioMInc %d, profileSeconds %d\n",startPercM, endPercM, ratioMInc, profileSeconds);
+#endif 
+
+      for (ratioMPerc=startPercM; ratioMPerc <= endPercM; ratioMPerc += ratioMInc) {
+        ratioM = ratioMPerc * UINT16_MAX / 100;
+
+        stabilizerThrustExperiment(ratioM);
+
+        ratioM1 = ratioM;
+        ratioM2 = ratioM;
+        ratioM3 = ratioM;
+        ratioM4 = ratioM;
+
+        if (ratioM > 0) {
+          vTaskDelay(M2T(profileSeconds*1000));
+        }
       }
 
-      motorsSetRatio(MOTOR_M1, 0);
-      motorsSetRatio(MOTOR_M2, 0);
-      motorsSetRatio(MOTOR_M3, 0);
-      motorsSetRatio(MOTOR_M4, 0);
-      executedOnce = true;
     } else {
-      motorsSetRatio(MOTOR_M1, 0);
-      motorsSetRatio(MOTOR_M2, 0);
-      motorsSetRatio(MOTOR_M3, 0);
-      motorsSetRatio(MOTOR_M4, 0);
+      DEBUG_PRINT("Unknown channel value %d\n",p.channel);    
     }
-     */
 
-    /*
-		ratioM1 = p.data && 0xFFFF;
-    ratioM2 = (p.data >> 16) && 0xFFFF;
-    ratioM3 = (p.data >> 32) && 0xFFFF;
-    ratioM4 = (p.data >> 48) && 0xFFFF;
-     */
+
 	}
 }
 
