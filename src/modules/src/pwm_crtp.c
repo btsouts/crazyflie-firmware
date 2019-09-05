@@ -49,7 +49,7 @@
 
 // Maximum log payload length
 #define MEM_MAX_LEN 30
-
+#define MAX_THRUST2  60000
 #define STATUS_OK 0
 
 typedef enum {
@@ -140,7 +140,7 @@ void pwmCRTPTask(void * param)
 #endif 
 
       for (ratioMPerc=startPercM; ratioMPerc <= endPercM; ratioMPerc += ratioMInc) {
-        ratioM = ratioMPerc * UINT16_MAX / 100;
+        ratioM = ratioMPerc * MAX_THRUST2 / 100; //UINT16_MAX
 
         stabilizerThrustExperiment(ratioM);
 
