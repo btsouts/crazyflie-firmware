@@ -67,6 +67,7 @@
 #include "ina219.h"
 #include "ina260.h"
 #include "pwm_crtp.h"
+#include "trajectory.h"
 
 /* Private variable */
 static bool selftestPassed;
@@ -179,6 +180,8 @@ void systemTask(void *arg)
   pwmCRTPInit();
 #endif
 
+  trajectoryInit();
+
 #ifdef PROXIMITY_ENABLED
   proximityInit();
 #endif
@@ -192,10 +195,14 @@ void systemTask(void *arg)
   pass &= deckTest();
   pass &= soundTest();
   pass &= memTest();
+#ifndef TRAJ_CRTP  
   pass &= watchdogNormalStartTest();
+#endif
+  
 #ifdef PWM_CRTP
   pass &= pwmCRTPTest();
 #endif
+  pass &= trajectoryTest();
 
   //Start the firmware
   if(pass)

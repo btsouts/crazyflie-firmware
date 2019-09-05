@@ -142,6 +142,11 @@ PROJ_OBJ += pwm_crtp.o
 CFLAGS += -DPWM_CRTP
 endif
 
+ifeq ($(TRAJ_CRTP_ENABLE), 1)
+PROJ_OBJ += traj_crtp.o
+CFLAGS += -DTRAJ_CRTP
+endif
+
 # USB Files
 PROJ_OBJ += usb_bsp.o usblink.o usbd_desc.o usb.o
 
