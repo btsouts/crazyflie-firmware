@@ -29,7 +29,7 @@
 #define MAX_FLIGHT_VELOCITY 5.0f
 #define INC_FLIGHT_VELOCITY 0.5f
 #define FLIGHT_VELOCITY_STEPS 15
-#define NUM_OF_ITEMS 5
+#define NUM_OF_ITEMS 6
 
 const float earth_radius = 6371000; //metres;
 const float pi = 3.1415926f;
@@ -368,19 +368,14 @@ static void trajectoryTask(void * prm);
 //Finds a close to optimal route using the 'Simulated Annealing' algorithm
 static trajectory_cost_t solution_sa(mission_waypoint_t *uploadedWpsList, int num_waypoints, int *solutionTrajMatrix, float *solSpeedMatrix, bool startRandom);
 
-//Finds the nearest neighbour that hasn't been visited
-static int least(int p, int num_waypoints, int completed[], float cost_array[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1], float *cost, bool *is_final);
-
 //Finds a close to optimal route using the 'Greedy' method
-static trajectory_cost_t solution_nn(int position, mission_waypoint_t *uploadedWpsList, int num_waypoints, float cost, int visited[], float cost_array[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1], int n, float energy, float payload_weight, int *solutionTrajMatrix, float speed);
+static trajectory_cost_t my_solution_nn(mission_waypoint_t *uploadedWpsList, int num_waypoints, int *solutionTrajMatrix, float *solSpeedMatrix, float speed);
 
 //Calculate the distance between two waypoints in spherical polar coordinates (latitude, longitude, and altitude)
 float calc_flight_time(struct mission_item_s waypoint1, struct mission_item_s waypoint2, float flight_speed);
 
 //Calculate an estimate of the battery percentage used between two waypoints
 static float calc_energy_use(struct mission_item_s waypoint1, struct mission_item_s waypoint2, float flight_speed, float payload);
-
-//static float** calc_cost(int num_waypoints, mission_waypoint_t *array);
 
 static trajectory_cost_t calculateTrajectoryCost(mission_waypoint_t *uploadedWpsList, int num_waypoints, int trajectoryMatrix[], float speedMatrix[]);
 
@@ -453,23 +448,52 @@ void trajectoryTask(void * param)
 
             DEBUG_PRINT("Executing input_light_uniform_A3 \n");
             elapsedTimeMs = exec_scenario (input_light_uniform_A3, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
+
+            DEBUG_PRINT("Executing input_mid_uniform_A1 \n");
+            elapsedTimeMs = exec_scenario (input_mid_uniform_A1, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
+
+            DEBUG_PRINT("Executing input_mid_uniform_A2 \n");
+            elapsedTimeMs = exec_scenario (input_mid_uniform_A2, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
+
+            DEBUG_PRINT("Executing input_mid_uniform_A3 \n");
+            elapsedTimeMs = exec_scenario (input_mid_uniform_A3, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
+
+            DEBUG_PRINT("Executing input_heavy_uniform_A1 \n");
+            elapsedTimeMs = exec_scenario (input_heavy_uniform_A1, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
+
+            DEBUG_PRINT("Executing input_heavy_uniform_A2 \n");
+            elapsedTimeMs = exec_scenario (input_heavy_uniform_A2, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
+
+            DEBUG_PRINT("Executing input_heavy_uniform_A3 \n");
+            elapsedTimeMs = exec_scenario (input_heavy_uniform_A3, numItems);
+            DEBUG_PRINT("Elapsed time was %lu ms\n",elapsedTimeMs);
+
+            vTaskDelay(M2T(5*1000));
 
             executedOnce = true;
         } else {
-            vTaskDelay(M2T(10000));
+            vTaskDelay(M2T(100000));
         }   
-        //             DEBUG_PRINT("Executing input_mid_uniform_A1 \n");
-        //             elapsedTimeMs = exec_scenario (input_mid_uniform_A1, numItems);
-        //             DEBUG_PRINT("Executing input_mid_uniform_A2 \n");
-        //             elapsedTimeMs = exec_scenario (input_mid_uniform_A2, numItems);
-        //             DEBUG_PRINT("Executing input_mid_uniform_A3 \n");
-        //             elapsedTimeMs = exec_scenario (input_mid_uniform_A3, numItems);
-        //             DEBUG_PRINT("Executing input_heavy_uniform_A1 \n");
-        //             elapsedTimeMs = exec_scenario (input_heavy_uniform_A1, numItems);
-        //             DEBUG_PRINT("Executing input_heavy_uniform_A2 \n");
-        //             elapsedTimeMs = exec_scenario (input_heavy_uniform_A2, numItems);
-        //             DEBUG_PRINT("Executing input_heavy_uniform_A3 \n");
-        //             elapsedTimeMs = exec_scenario (input_heavy_uniform_A3, numItems);
+        
+        
 		
 		
         
@@ -562,30 +586,6 @@ void trajectoryTask(void * param)
 	}
 }
 
-//Calculates a 2D cost array based on the cost function used
-/*
-float** calc_cost(int num_waypoints, mission_waypoint_t *array)
-{
-    float speed = 5.0;
-    float cost2d[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1];
-    
-    // float ** cost2d;
-    // cost2d = (float **) malloc((num_waypoints+1) * sizeof(float *));
-
-    // for (int i=0; i < num_waypoints+1; i++){
-    //     cost2d[i] = (float *) malloc((num_waypoints+1) * sizeof(float));
-    // }
-    
-    for (int i = 0; i < num_waypoints+1; i++){
-        for (int t = 0; t < num_waypoints+1; t++){
-            cost2d[i][t] = calc_flight_time(array[i].waypoint, array[t].waypoint, speed);
-        }
-    }
-
-    return cost2d;
-}
-*/
-
 float calc_flight_time(struct mission_item_s waypoint1, struct mission_item_s waypoint2, float flight_speed)
 {
     float lat1_rad = (waypoint1.lat/180)*pi;
@@ -667,73 +667,48 @@ trajectory_cost_t calculateTrajectoryCost(mission_waypoint_t *uploadedWpsList, i
     return curTrajCost;
 }
 
-//Finds the nearest neighbour that hasn't been visited
-int least(int p, int num_waypoints, int completed[], float cost_array[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1], float *cost, bool *is_final)
+trajectory_cost_t my_solution_nn(mission_waypoint_t *uploadedWpsList, int num_waypoints, int *solutionTrajMatrix, float *solSpeedMatrix, float speed)
 {
-    int i,np=0;
-    float min=0,kmin;
-    
-    *is_final = true;
+    int startWp=0, chosenWp=0, visitedNode[NUM_OF_ITEMS+1];
+    trajectory_cost_t curSolutionTrajCost;
+    float minCurDist, distTimeArray[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1];
 
-    for (i=0;i<num_waypoints;i++){
-        if((cost_array[p][i]>=0.05f)&&(completed[i]==0)){ //Check that this is correct
-            //For first iteration, pick any point
-            if (min == 0){
-                min = cost_array[i][0]+cost_array[p][i];
-                kmin=cost_array[p][i];
-                np=i;
-                *is_final = false;
-            }
+    //visitedNode = (int *) malloc(num_waypoints * sizeof(int));
+    //distTimeArray = (double **) malloc(num_waypoints * sizeof(double *));
 
-            //For other iterations, check to see if there is any better point
-            else if(cost_array[p][i]+cost_array[i][p] < min){
-                min = cost_array[i][0]+cost_array[p][i];
-                kmin=cost_array[p][i];
-                np=i;
-                *is_final = false;
+    for (int i=0; i<num_waypoints; i++) {
+        visitedNode[i] = 0;
+        solSpeedMatrix[i] = 5.0;
+
+        //distTimeArray[i] = (double *) malloc(num_waypoints * sizeof(double));
+        for (int t = 0; t < num_waypoints; t++){
+            distTimeArray[i][t] = calc_flight_time(uploadedWpsList[i].waypoint, uploadedWpsList[t].waypoint, speed);
+        }
+    }    
+
+    //Set the depot node as visited
+    visitedNode[0]=1;
+    solutionTrajMatrix[0] = 0;
+
+    for (int curWpIndex=1; curWpIndex<num_waypoints; curWpIndex++) {
+        minCurDist = INFINITY;
+        
+        for (int examiningWp=1; examiningWp<num_waypoints; examiningWp++) {
+            if (visitedNode[examiningWp] == 0) {
+                if (distTimeArray[startWp][examiningWp] < minCurDist) {
+                    minCurDist = distTimeArray[startWp][examiningWp];
+                    chosenWp = examiningWp;
+                }    
             }
         }
+
+        solutionTrajMatrix[curWpIndex] = chosenWp;
+        visitedNode[chosenWp] = 1;
     }
+    
+    curSolutionTrajCost = calculateTrajectoryCost(uploadedWpsList, num_waypoints, solutionTrajMatrix, solSpeedMatrix);
 
-    if (*is_final != true){
-        *cost+=kmin;
-    }
-
-    return np;
-}
-
-//Finds a close to optimal route using the 'Nearest Neighbour' method
-trajectory_cost_t solution_nn(int position, mission_waypoint_t *uploadedWpsList, int num_waypoints, float cost, int visited[], float cost_array[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1], int n, float energy, float payload_weight, int *solutionTrajMatrix, float speed)
-{
-    int nposition;
-    bool is_final = false;
-    trajectory_cost_t curSolutionTrajCost;
-
-    //Set the current position as visited
-    visited[position]=1;
-    solutionTrajMatrix[n]=position;
-    n++;
-
-   // std::cout << position << "--->";
-
-    nposition = least(position, num_waypoints, visited, cost_array, &cost, &is_final);
-    energy += calc_energy_use(uploadedWpsList[position].waypoint, uploadedWpsList[nposition].waypoint, speed, payload_weight);
-
-    //Remove the delivered payload from the total payload weight
-    payload_weight -= uploadedWpsList[nposition].waypoint.payload_weight;
-    float speedMatrix[num_waypoints];
-    for (int i=0; i<num_waypoints; i++){
-        speedMatrix[i]=speed;
-    }
-
-    if(is_final == true){
-        nposition=0;
-        cost+=cost_array[position][nposition];
-        curSolutionTrajCost = calculateTrajectoryCost(uploadedWpsList, num_waypoints, solutionTrajMatrix, speedMatrix);
-        return curSolutionTrajCost;
-    } else {
-        return solution_nn(nposition, uploadedWpsList, num_waypoints, cost, visited, cost_array, n, energy, payload_weight, solutionTrajMatrix, speed);
-    }
+    return curSolutionTrajCost;  
 }
 
 //Finds a close to optimal route using the 'Simulated Annealing' algorithm
@@ -816,7 +791,7 @@ trajectory_cost_t solution_sa(mission_waypoint_t *uploadedWpsList, int num_waypo
             if ((curTrajCost.missedDeadlines < curSolutionTrajCost.missedDeadlines) || ((curTrajCost.requiredEnergy < curSolutionTrajCost.requiredEnergy) && (curTrajCost.missedDeadlines == curSolutionTrajCost.missedDeadlines))) {
                 curSolutionTrajCost = curTrajCost;
 
-                for (int i=1; i<=num_waypoints; i++) {
+                for (int i=1; i<num_waypoints; i++) {
                     solutionTrajMatrix[i] = tmpTrajMatrix[i];
                     solSpeedMatrix[i] = tmpSpeedMatrix[i];
                 }
@@ -830,7 +805,7 @@ trajectory_cost_t solution_sa(mission_waypoint_t *uploadedWpsList, int num_waypo
                 if (accProbability > probThreshold) {
                     curSolutionTrajCost = curTrajCost;
 
-                    for (int i=1; i<=num_waypoints; i++) {
+                    for (int i=1; i<num_waypoints; i++) {
                         solutionTrajMatrix[i] = tmpTrajMatrix[i];
                         solSpeedMatrix[i] = tmpSpeedMatrix[i];
                     }
@@ -848,12 +823,6 @@ trajectory_cost_t solution_sa(mission_waypoint_t *uploadedWpsList, int num_waypo
         } else if (Temperature <= 0.0f) {
             terminate = true;
         }
-
-        // Terminate only after the temperature has reached zero
-        /* Evaluate termination condition */
-//        if (Temperature <= 0.0) {
-//            terminate = true;
-//        }
     }
 
     DEBUG_PRINT("SA evaluated %d\n",evaluatedSolutions);
@@ -869,11 +838,10 @@ trajectory_cost_t calc_solution(mission_waypoint_t *uploadedWpsList, int num_way
     //int *visitedNodes, *solutionTrajMatrix, *nnSolutionTrajMatrix;
     //float *departureSpeedMatrix; //, solutionSpeed=0.0;
     trajectory_cost_t solutionTrajCost = {.requiredEnergy = INFINITY, .missedDeadlines = num_waypoints, .avgDelay = 0.0};
-    float cost_array[NUM_OF_ITEMS+1][NUM_OF_ITEMS+1];
-    int n = 0, i;
-    trajectory_cost_t tmpSolutionTrajCost;
+    int i;
+    //trajectory_cost_t tmpSolutionTrajCost;
 
-    int visitedNodes[NUM_OF_ITEMS+1], solutionTrajMatrix[NUM_OF_ITEMS+1], nnSolutionTrajMatrix[NUM_OF_ITEMS+1];
+    int solutionTrajMatrix[NUM_OF_ITEMS+1], nnSolutionTrajMatrix[NUM_OF_ITEMS+1];
     float departureSpeedMatrix[NUM_OF_ITEMS+1];
     /*
     trajectory = (int *) malloc(num_waypoints * sizeof(int));
@@ -883,36 +851,20 @@ trajectory_cost_t calc_solution(mission_waypoint_t *uploadedWpsList, int num_way
     departureSpeedMatrix = (float *) malloc(num_waypoints * sizeof(float));
     */
 
-    //Set the starting payload
-    float takeoff_weight=0;
-    for (i=0; i<num_waypoints; i++){
-        takeoff_weight += uploadedWpsList[i].waypoint.payload_weight;
-    }
-
-    //DEBUG_PRINT("\nThe takeoff weight is: %f kg\n",(float) takeoff_weight);
-    uploadedWpsList[0].waypoint.payload_weight = takeoff_weight;
-
+    //DEBUG_PRINT("\nThe takeoff weight is: %f kg\n",uploadedWpsList[0].waypoint.payload_weight);
+    
     if (algoId == 1) {
         /*** CALL MINCOST/NEAREST NEIGHBOUR ***/
-        //Calculate the 2D cost/time array (using spherical polar coordinates)
-        for (i = 0; i < num_waypoints+1; i++){
-            for (int t = 0; t < num_waypoints+1; t++){
-                cost_array[i][t] = calc_flight_time(uploadedWpsList[i].waypoint, uploadedWpsList[t].waypoint, 5.0);
-            }
-        }
-
+        
+        /*
         //Allow for variable speed
         for (float tmpSpeed = MIN_FLIGHT_VELOCITY; tmpSpeed <= MAX_FLIGHT_VELOCITY; tmpSpeed += INC_FLIGHT_VELOCITY) {
-            float cost_nearest = 0, energy_nearest = 0;
-
-            /* Re-initialize input data for greedy */
+            
+            // Re-initialize input data for greedy
             for (i=0; i<num_waypoints; i++){
                 visitedNodes[i] = 0;
                 nnSolutionTrajMatrix[i] = 0;
             }
-
-            //Call the nearest neighbour solution
-            tmpSolutionTrajCost = solution_nn(0, uploadedWpsList, num_waypoints, cost_nearest, visitedNodes, cost_array, n, energy_nearest, takeoff_weight, nnSolutionTrajMatrix, tmpSpeed);
 
             //Check for improvements
             if (tmpSpeed == MIN_FLIGHT_VELOCITY){
@@ -923,15 +875,18 @@ trajectory_cost_t calc_solution(mission_waypoint_t *uploadedWpsList, int num_way
 
             }
         }
+        */
+        solutionTrajCost = my_solution_nn(uploadedWpsList, num_waypoints, nnSolutionTrajMatrix, departureSpeedMatrix, MIN_FLIGHT_VELOCITY);
 
         //Print Results
-        DEBUG_PRINT("\nNearest Neighbour Chosen solution is:\n");
+        DEBUG_PRINT("\nMy Nearest Neighbour Chosen solution is:\n");
         for (i=0; i<num_waypoints; i++) {
             DEBUG_PRINT("%d--->", nnSolutionTrajMatrix[i]);
             finalWpsList[i] = uploadedWpsList[nnSolutionTrajMatrix[i]]; // Initialize with the waypoints index
             finalWpsList[i].departureSpeed = departureSpeedMatrix[i];
         }
         DEBUG_PRINT("0\n");
+        DEBUG_PRINT("Number of missed deadlines: %d\n\n", solutionTrajCost.missedDeadlines);
     } else {
         for (i=0; i<num_waypoints; i++) {
             nnSolutionTrajMatrix[i] = i; 
@@ -941,36 +896,30 @@ trajectory_cost_t calc_solution(mission_waypoint_t *uploadedWpsList, int num_way
     //DEBUG_PRINT("Energy consumption: %f, number of missed deadlines: %d, Avg Delay %f\n\n",
     //       solutionTrajCost.requiredEnergy, solutionTrajCost.missedDeadlines, solutionTrajCost.avgDelay);
 
-    //Allow the Simulated Annealing algorithm to start with the nn solution
-    /*
-    int nnSolution[num_waypoints+1];
-    for (int t=0; t<num_waypoints; t++){
-        nnSolution[t]=nnSolutionTrajMatrix[t];
+    if (algoId == 2) {
+        /*** CALL SIMULATED ANNEALING ***/
+        /* Re-initialize input data for SA */
+        for (i=0; i<num_waypoints; i++){
+            departureSpeedMatrix[i] = 5.0;
+            
+            //solutionTrajMatrix[i] = 0; -- Random
+            solutionTrajMatrix[i] = nnSolutionTrajMatrix[i];
+        }
+
+        solutionTrajCost = solution_sa(uploadedWpsList, num_waypoints, solutionTrajMatrix, departureSpeedMatrix, false);
+
+        DEBUG_PRINT("SA Chosen solution is:\n");
+        for (i=0; i<num_waypoints; i++) {
+            DEBUG_PRINT("%d--->", solutionTrajMatrix[i]);
+            finalWpsList[i] = uploadedWpsList[solutionTrajMatrix[i]]; // Initialize with the waypoints index
+            finalWpsList[i].departureSpeed = departureSpeedMatrix[i];
+        }
+        DEBUG_PRINT("0\n");
+
+        //DEBUG_PRINT("Energy consumption: %f, number of missed deadlines: %d, Avg Delay %f\n\n",
+        //	solutionTrajCost.requiredEnergy, solutionTrajCost.missedDeadlines, solutionTrajCost.avgDelay);
+        DEBUG_PRINT("Number of missed deadlines: %d\n\n", solutionTrajCost.missedDeadlines);
     }
-    */
-
-    /*** CALL SIMULATED ANNEALING ***/
-    /* Re-initialize input data for SA */
-    for (i=0; i<num_waypoints; i++){
-        departureSpeedMatrix[i] = 5.0;
-        
-        //solutionTrajMatrix[i] = 0; -- Random
-        solutionTrajMatrix[i] = nnSolutionTrajMatrix[i];
-    }
-
-    solutionTrajCost = solution_sa(uploadedWpsList, num_waypoints, solutionTrajMatrix, departureSpeedMatrix, false);
-
-    DEBUG_PRINT("SA Chosen solution is:\n");
-    for (i=0; i<num_waypoints; i++) {
-        DEBUG_PRINT("%d--->", solutionTrajMatrix[i]);
-        finalWpsList[i] = uploadedWpsList[solutionTrajMatrix[i]]; // Initialize with the waypoints index
-        finalWpsList[i].departureSpeed = departureSpeedMatrix[i];
-    }
-    DEBUG_PRINT("0\n");
-
-	//DEBUG_PRINT("Energy consumption: %f, number of missed deadlines: %d, Avg Delay %f\n\n",
-	//	solutionTrajCost.requiredEnergy, solutionTrajCost.missedDeadlines, solutionTrajCost.avgDelay);
-    DEBUG_PRINT("Number of missed deadlines: %d\n\n", solutionTrajCost.missedDeadlines);
 
     /*
     free(trajectory);
@@ -996,8 +945,8 @@ exec_scenario (float input_benchmark[15][7], int numItems)
     char userChar = 'A';
     uint32_t start_ms, finish_ms; 
     
-    start_ms = T2M(xTaskGetTickCount());
-
+    start_ms = xTaskGetTickCount(); //T2M(xTaskGetTickCount());
+    DEBUG_PRINT("start_ms is %lu\n",start_ms);
     /*    
     uploadedWpsList = (mission_waypoint_t *) malloc((numItems+2) * sizeof(mission_waypoint_t));
     finalWpsList = (mission_waypoint_t *) malloc((numItems+2) * sizeof(mission_waypoint_t));
@@ -1009,12 +958,12 @@ exec_scenario (float input_benchmark[15][7], int numItems)
     mission_item.lon = 8.545608f; //telemetry->position().longitude_deg;
     mission_item.altitude = 20.0; //telemetry->position().absolute_altitude_m;
     mission_item.speed = 5.0f;
+    mission_item.payload_weight = 0.0;
+    mission_item.deadline = 0.0f;
     oneWaypoint.waypoint = mission_item;
     oneWaypoint.originalIndex = 0;
     uploadedWpsList[listIndex++] = oneWaypoint;
     numOfWaypoints = 1;
-    
-    //printf("Mission Count is: %d\n", numItems);
 
     if (numItems > 0) {
         /* READ MISSION ITEMS */
@@ -1030,6 +979,8 @@ exec_scenario (float input_benchmark[15][7], int numItems)
                 mission_item.speed = input_benchmark[i][columnIndex++];
                 mission_item.deadline = input_benchmark[i][columnIndex++];
                 mission_item.payload_weight = input_benchmark[i][columnIndex++];
+
+                uploadedWpsList[0].waypoint.payload_weight += mission_item.payload_weight;
 
                 oneWaypoint.waypoint = mission_item;
                 oneWaypoint.originalIndex = i+1;
@@ -1055,9 +1006,9 @@ exec_scenario (float input_benchmark[15][7], int numItems)
         uploadedWpsList[numOfWaypoints].waypoint.payload_weight = 0;
 
         /* Calculate the optimal trajectory */
-        solutionTrajCost = calc_solution(uploadedWpsList, numOfWaypoints, 0, finalWpsList);
-        finish_ms = T2M(xTaskGetTickCount());
-
+        solutionTrajCost = calc_solution(uploadedWpsList, numOfWaypoints, 1, finalWpsList);
+        finish_ms = xTaskGetTickCount(); //T2M(xTaskGetTickCount());
+        DEBUG_PRINT("finish_ms is %lu\n",finish_ms);
         //DEBUG_PRINT("Energy consumption: %f, number of missed deadlines: %d, Avg Delay %f\n\n",
 	    //    solutionTrajCost.requiredEnergy, solutionTrajCost.missedDeadlines, solutionTrajCost.avgDelay);
         //DEBUG_PRINT("Number of missed deadlines: %d\n\n", solutionTrajCost.missedDeadlines);
